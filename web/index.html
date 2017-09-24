@@ -1,0 +1,140 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+  <meta charset="UTF-8"> 
+  <title>Main courante</title>
+  <style>
+  body {font-family: Helvetica, Arial, Sans-Serif;}
+  #log {
+     padding: 20px;
+     text-align: left;
+     min-height: 300px;
+     width: 960px;
+     position: relative;
+     margin:0 auto;
+     line-height: 1.4em;
+  }
+  .info {background-color: #00c;color: white;}
+  .act {background-color: #c00; padding: 0 .5em 0 .5em;}
+  .pt {border-bottom: thick solid #0c0; color: white; padding-left: 5vw; display:inline-block;}
+  .dem {background-color: orange;}
+  .auth {color: #ccc; font-size: .8vw; margin-left: 4em;}
+  .src {color: #ccc; font-size: .8vw; font-style: italic; margin-left: 4em;}
+  #err {color: #c00; margin-left: 2em;}
+  #text {width: 80%;}
+  input {padding: 2px; margin: 5px;}
+  .mstyle {
+    border-radius: 10px 0 0 10px;
+    padding: 5px;
+    margin: 5px 0px 5px 5px;
+    background-color: coral;
+    color: white;
+    font-size: 1.5vw;
+    position: absolute;
+    top: 85%;
+    right: 0%;
+    z-index: 200;
+    float: right;
+  }
+  .mstyle #share { display: none;}
+  .mstyle #menu { display: block;}
+  .mstyle a { cursor:pointer; }
+  #pass { font-family: monospace}
+
+  @media screen and (max-width: 480px), 
+   screen and (max-device-width: 768px) and (orientation: portrait), 
+   screen and (max-device-width: 415px) and (orientation: landscape) {
+    * { font-size: 3vw; }
+    #log { width: 80%; background: #f1f1f1;}
+    #form, .mstyle {display: none;}
+  }
+  </style>
+  </head>
+
+  <body>
+    <center>
+      <h3>Main courante</h3> 
+      <!-- <div class="menu"> [<a onclick='load();'>Reload</a>] </div> -->
+      <div id="log"></div>
+      <div id="form">
+       <input type="radio" name="ev" value="info">Info</input>
+       <input type="radio" name="ev" value="dem">Demande</input>
+       <input type="radio" name="ev" value="act">Action</input>
+       <input type="radio" name="ev" value="pt">Point</input>
+       <span id="err">(choix obligatoire)</span><br />
+       <input placeholder="description" id="text" type="text"><br />
+       <input placeholder="source" id="sc" type="text" size="10"><br />
+      </div>
+      <div class="mstyle">
+        <span id="menu"><a onclick='share();'>&lt;&lt;</a></span> 
+        <div  id="share">
+          <a onclick='share();'><b>&gt;&gt;</b></a> <br />
+          Serveur : <span id="serv"></span> <br />
+          Pass : <span id="pass"></span>
+        </div>
+      </div>
+    </center>
+
+    <script>
+      var url = "ws://" + window.location.host + "/ws";
+      var ws = new WebSocket(url);
+
+      var log = document.getElementById("log");
+      var err = document.getElementById("err");
+      var text = document.getElementById("text");
+      var sc = document.getElementById("sc");
+      var menu = document.getElementById('menu');
+      var serv = document.getElementById("serv");
+      var pass = document.getElementById("pass");
+   	  var x = document.getElementById('share');
+
+
+      ws.onmessage = function (msg) {
+		var msgserver = msg.data.split('--');
+		if (msgserver[0] === 'share') {
+		  serv.innerText = msgserver[1]
+		  pass.innerText = msgserver[2]
+		}
+		else {
+          var line =  msg.data + "<br />\n";
+          log.innerHTML += line;
+		}
+      };
+
+      text.onkeydown = function (e) {
+        if (e.keyCode === 13 && text.value !== "") {
+          var ev = document.querySelector('input[name="ev"]:checked');
+          if (ev !== null) {
+          ws.send(JSON.stringify({EV: ev.value, Text: text.value, Source: sc.value}));
+          text.value = ""; sc.value = ""; ev.checked = 0;
+          err.style.visibility = 'hidden';
+          }
+          else {
+          err.style.visibility = 'visible';
+          }
+        }
+      };
+
+      function load() {
+        log.innerHTML = "";
+        ws.send("load");
+      };
+
+      function share() {
+        if (x.style.display == 'none' || x.style.display == "" ) {
+      	  ws.send("share");
+		  menu.style.display = 'none';
+          x.style.display = 'block';
+        } else {
+		  menu.style.display = 'block';
+          x.style.display = 'none';
+        }
+      };
+
+     setTimeout(function(){
+         ws.send("load");
+         }, 1000);
+
+    </script>
+  </body>
+</html>

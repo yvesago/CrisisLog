@@ -2,7 +2,7 @@ package main
 
 /*
 
-../gotest/bin/go-bindata -o myweb.go web/index.html
+./go-bindata -o myweb.go web/index.html
 
 
 go build  -ldflags "-s" -o crisislog *.go
@@ -49,7 +49,8 @@ func FormatHTMLLine(line string) string {
 	return nl
 }
 
-const letterBytes = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+//const letterBytes = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+const letterBytes = "abcdefghijkmnopqrstuvwxyz23456789" // simpliest password
 
 func RandStringBytes(n int) string {
 	b := make([]byte, n)
@@ -68,7 +69,7 @@ func main() {
 
 	servPtr := flag.String("s", "", "Serveur")
 	usrPtr := flag.String("u", "crise", "Utilisateur")
-	filePtr := flag.String("f", "./mc.log", "Fichier de log")
+	filePtr := flag.String("f", "./chrono.log", "Fichier de log")
 	portPtr := flag.String("p", "5000", "Port")
 	debugPtr := flag.Bool("d", false, "Debug mode")
 	flag.Parse()
@@ -115,6 +116,8 @@ func main() {
 	fmt.Println("  =========")
 	fmt.Println("  Server: " + serv)
 	fmt.Println("    Pass: " + pass)
+	fmt.Println(" ")
+	fmt.Println("  version: " + version)
 	fmt.Println("#--------------------------------------------#")
 
 	// Add Asset

@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"gopkg.in/olahol/melody.v1"
+	"html"
 	"math/rand"
 	"net"
 	"net/http"
@@ -48,12 +49,10 @@ func FormatHTMLLine(line string) (string, string) {
 	t := elem[1]
 	c := elem[2]
 	c = " <span class=\"" + c + "\">" + c + "</span>"
-	txta := elem[3]
+	txta := html.EscapeString(elem[3])
 	txt := re.ReplaceAllString(txta, `<b>$1</b>`)
-	// TODO XSS escape html
 	txt = " <span class=\"t\">" + txt + "</span>"
-	src := elem[4]
-	// TODO XSS escape html
+	src := html.EscapeString(elem[4])
 	src = " <span class=\"src\">" + src + "</span>"
 	ip := elem[5]
 	ip = " <span class=\"auth\">" + ip + "</span>"

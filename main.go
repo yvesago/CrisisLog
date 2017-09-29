@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -40,13 +41,26 @@ func AppendStringToFile(path, text string) error {
 	return nil
 }
 
-func FormatHTMLLine(line string) string {
-	var re = regexp.MustCompile(`^(.*?)\|(.*?)\|(.*?)\|(.*?)\|(.*?)$`)
-	var reB = regexp.MustCompile(`<span class="t">(.*?)\*(.*?)\*(.*?)</span>`)
-	// XXX XSS, TODO parser, filter, escape
-	nlt := re.ReplaceAllString(line, `$1 <span class="$2">$2</span> <span class="t">$3</span> <span class="src">$4</span> <span class="auth">$5</span>`)
-	nl := reB.ReplaceAllString(nlt, `$1<b>$2</b>$3`)
-	return nl
+func FormatHTMLLine(line string) (string, string) {
+	var re = regexp.MustCompile(`\*(.*?)\*`)
+	elem := strings.Split(line, "|")
+	day := elem[0]
+	t := elem[1]
+	c := elem[2]
+	c = " <span class=\"" + c + "\">" + c + "</span>"
+	txta := elem[3]
+	txt := re.ReplaceAllString(txta, `<b>$1</b>`)
+	// TODO XSS escape html
+	txt = " <span class=\"t\">" + txt + "</span>"
+	src := elem[4]
+	// TODO XSS escape html
+	src = " <span class=\"src\">" + src + "</span>"
+	ip := elem[5]
+	ip = " <span class=\"auth\">" + ip + "</span>"
+
+	nl := t + c + txt + src + ip
+
+	return day, nl
 }
 
 //const letterBytes = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
@@ -150,6 +164,8 @@ func main() {
 		m.HandleRequestWithKeys(c.Writer, c.Request, ml)
 	})
 
+	oldday := ""
+
 	// Manage websocket messages
 	m.HandleMessage(func(s *melody.Session, msg []byte) {
 		l, _ := s.Get("cip")
@@ -166,10 +182,18 @@ func main() {
 			fh, _ := os.Open(file)
 			defer fh.Close()
 			fScan := bufio.NewScanner(fh)
+			old := ""
 			for fScan.Scan() {
-				byteArray := []byte(FormatHTMLLine(fScan.Text()))
+				d, l := FormatHTMLLine(fScan.Text())
+				if d != old {
+					byteArray := []byte("<span class=\"day\">" + d + ":</span>")
+					m.BroadcastMultiple(byteArray, as)
+				}
+				old = d
+				byteArray := []byte(l)
 				m.BroadcastMultiple(byteArray, as)
 			}
+			oldday = old
 		} else {
 			var objmap map[string]*json.RawMessage
 			e := json.Unmarshal(msg, &objmap)
@@ -186,7 +210,9 @@ func main() {
 				src = fmt.Sprintf("Origine %s", sc[1:len(sc)-1])
 			}
 			t := time.Now()
-			line := fmt.Sprintf("%s|%s|%s|%s|%s",
+			day := t.Format("02-01-2006")
+			line := fmt.Sprintf("%s|%s|%s|%s|%s|%s",
+				day,
 				t.Format("15:04:05"),
 				ev[1:len(ev)-1], //remove quotes
 				te[1:len(te)-1], //remove quotes
@@ -195,7 +221,13 @@ func main() {
 			// append to file
 			err := AppendStringToFile(file, line+"\r\n")
 			if err == nil {
-				byteArray := []byte(FormatHTMLLine(line))
+				if day != oldday {
+					byteArray := []byte("<span class=\"day\">" + day + ":</span>")
+					m.Broadcast(byteArray)
+				}
+				oldday = day
+				_, l := FormatHTMLLine(line)
+				byteArray := []byte(l)
 				m.Broadcast(byteArray)
 			} else {
 				fmt.Println(err)

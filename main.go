@@ -17,6 +17,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gopkg.in/olahol/melody.v1"
 	"html"
+	"log"
 	"math/rand"
 	"net"
 	"net/http"
@@ -201,7 +202,7 @@ func main() {
 
 	// Manage websocket messages
 	m.HandleMessage(func(s *melody.Session, msg []byte) {
-		l, _ := s.Get("cip")
+		ip, _ := s.Get("cip")
 		if string(msg) == "share" {
 			// display share access
 			var as []*melody.Session
@@ -231,7 +232,7 @@ func main() {
 
 			day, line := ParseEntry(msg)
 
-			line += fmt.Sprintf("%s", l) // add IP src
+			line += fmt.Sprintf("%s", ip) // add IP src
 
 			// append to file
 			err := AppendStringToFile(file, line+"\r\n")
@@ -244,6 +245,12 @@ func main() {
 				_, l := FormatHTMLLine(line)
 				byteArray := []byte(l)
 				m.Broadcast(byteArray)
+				// log websocket
+				if debug == true {
+					t := time.Now()
+					t.Format("02/01/2006 15:04:05")
+					log.Printf("[WS] %s |  | OK | %s | Write", t.Format("2006/01/02 - 15:04:05"), ip)
+				}
 			} else {
 				fmt.Println(err)
 			}

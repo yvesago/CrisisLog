@@ -42,8 +42,17 @@ func AppendStringToFile(path, text string) error {
 	return nil
 }
 
-func ParseEntry(jte json.RawMessage, jev json.RawMessage, jsc json.RawMessage) (string, string) {
-	var r = strings.NewReplacer("|", "", "\r", "", "\n", "")
+func ParseEntry(msg []byte) (string, string) {
+	var objmap map[string]*json.RawMessage
+	e := json.Unmarshal(msg, &objmap)
+	if e != nil {
+		fmt.Println(e)
+	}
+
+	jte := *objmap["Text"]
+	jev := *objmap["EV"]
+	jsc := *objmap["Source"]
+	var r = strings.NewReplacer("|", "", "\\r", "", "\\n", "")
 
 	te := fmt.Sprintf("%s", jte[1:len(jte)-1]) // string + remove quotes
 	te = r.Replace(te)
@@ -219,17 +228,8 @@ func main() {
 			}
 			oldday = old
 		} else {
-			var objmap map[string]*json.RawMessage
-			e := json.Unmarshal(msg, &objmap)
-			if e != nil {
-				fmt.Println(e)
-			}
 
-			jte := *objmap["Text"]
-			jev := *objmap["EV"]
-			jsc := *objmap["Source"]
-
-			day, line := ParseEntry(jte, jev, jsc)
+			day, line := ParseEntry(msg)
 
 			line += fmt.Sprintf("%s", l) // add IP src
 

@@ -42,13 +42,38 @@ func AppendStringToFile(path, text string) error {
 	return nil
 }
 
+func ParseEntry(jte json.RawMessage, jev json.RawMessage, jsc json.RawMessage) (string, string) {
+	var r = strings.NewReplacer("|", "", "\r", "", "\n", "")
+
+	te := fmt.Sprintf("%s", jte[1:len(jte)-1]) // string + remove quotes
+	te = r.Replace(te)
+
+	ev := ""
+	if len(jev) < 7 {
+		ev = fmt.Sprintf("%s", jev[1:len(jev)-1]) // string + remove quotes
+		ev = r.Replace(ev)
+	}
+
+	src := ""
+	if len(jsc) > 2 {
+		src = fmt.Sprintf("Origine %s", jsc[1:len(jsc)-1])
+		src = r.Replace(src)
+	}
+
+	t := time.Now()
+	day := t.Format("02-01-2006")
+	h := t.Format("15:04:05")
+	line := day + "|" + h + "|" + ev + "|" + te + "|" + src + "|"
+	return day, line
+}
+
 func FormatHTMLLine(line string) (string, string) {
 	var re = regexp.MustCompile(`\*(.*?)\*`)
 	elem := strings.Split(line, "|")
 	day := elem[0]
 	t := elem[1]
-	c := elem[2]
-	c = " <span class=\"" + c + "\">" + c + "</span>"
+	ev := elem[2]
+	ev = " <span class=\"" + ev + "\">" + ev + "</span>"
 	txta := html.EscapeString(elem[3])
 	txt := re.ReplaceAllString(txta, `<b>$1</b>`)
 	txt = " <span class=\"t\">" + txt + "</span>"
@@ -57,7 +82,7 @@ func FormatHTMLLine(line string) (string, string) {
 	ip := elem[5]
 	ip = " <span class=\"auth\">" + ip + "</span>"
 
-	nl := t + c + txt + src + ip
+	nl := t + ev + txt + src + ip
 
 	return day, nl
 }
@@ -199,24 +224,15 @@ func main() {
 			if e != nil {
 				fmt.Println(e)
 			}
-			te := *objmap["Text"]
-			ev := *objmap["EV"]
-			sc := *objmap["Source"]
-			//fmt.Println("sc ",len(sc))
-			//fmt.Println("ev ",string(ev))
-			src := ""
-			if len(sc) > 2 {
-				src = fmt.Sprintf("Origine %s", sc[1:len(sc)-1])
-			}
-			t := time.Now()
-			day := t.Format("02-01-2006")
-			line := fmt.Sprintf("%s|%s|%s|%s|%s|%s",
-				day,
-				t.Format("15:04:05"),
-				ev[1:len(ev)-1], //remove quotes
-				te[1:len(te)-1], //remove quotes
-				src,
-				l)
+
+			jte := *objmap["Text"]
+			jev := *objmap["EV"]
+			jsc := *objmap["Source"]
+
+			day, line := ParseEntry(jte, jev, jsc)
+
+			line += fmt.Sprintf("%s", l) // add IP src
+
 			// append to file
 			err := AppendStringToFile(file, line+"\r\n")
 			if err == nil {

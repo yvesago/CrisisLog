@@ -14,7 +14,9 @@
      margin:0 auto;
      line-height: 1.4em;
   }
-  #form { padding-top: 2px; border-top: thick solid #ffef44; }
+  #form { padding-top: 2px;  }
+  legend { font-weight: bold; text-align: left; font-size: larger; margin: 4px; }
+  fieldset { border: none; border-top: thick solid #ffef44; }
   .day {font-weight: bold; font-size: larger;}
   .info {background-color: #66e;color: white; padding: 0 .3em 0 .3em;}
   .act {background-color: #d22; padding: 0 .5em 0 .5em;}
@@ -54,10 +56,13 @@
   </head>
 
   <body>
-    <center>
-      <h3>Main courante</h3> 
       <!-- <div class="menu"> [<a onclick='load();'>Reload</a>] </div> -->
+    <center>
       <div id="log"></div>
+    </center>
+    <fieldset>
+     <legend>Main courante :</legend>
+     <center>
       <div id="form">
        <input type="radio" accesskey="i" name="ev" value="info"><u>I</u>nfo</input>
        <input type="radio" accesskey="m" name="ev" value="dem">De<u>m</u>ande</input>
@@ -67,15 +72,16 @@
        <input placeholder="description + validation" id="text" type="text"><br />
        <input placeholder="source" id="sc" type="text" size="15"><br />
       </div>
-      <div class="mstyle">
-        <span id="menu"><a onclick='share();'>&lt;&lt;</a></span> 
-        <div  id="share">
-          <a onclick='share();'><b>&gt;&gt;</b></a> <br />
-          Serveur : <span id="serv"></span> <br />
-          Pass : <span id="pass"></span>
-        </div>
+     </center>
+    </fieldset>
+    <div class="mstyle">
+      <span id="menu"><a onclick='share();'>&lt;&lt;</a></span>
+      <div  id="share">
+        <a onclick='share();'><b>&gt;&gt;</b></a> <br />
+        Serveur : <span id="serv"></span> <br />
+        Pass : <span id="pass"></span>
       </div>
-    </center>
+    </div>
 
     <script>
       var url = "ws://" + window.location.host + "/ws";

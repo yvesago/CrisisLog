@@ -114,6 +114,9 @@ func init() {
 
 func main() {
 	pass := RandStringBytes(8)
+	if os.Getenv("CRISIS_KEY") != "" {
+		pass = os.Getenv("CRISIS_KEY")
+	}
 
 	servPtr := flag.String("s", "", "Serveur")
 	usrPtr := flag.String("u", "crise", "Utilisateur")
@@ -192,7 +195,7 @@ func main() {
 	})
 
 	// Websocket router
-	r.GET("/ws", func(c *gin.Context) {
+	r.GET("/log/ws", func(c *gin.Context) {
 		ml := make(map[string]interface{})
 		ml["cip"] = c.ClientIP()
 		m.HandleRequestWithKeys(c.Writer, c.Request, ml)

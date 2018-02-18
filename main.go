@@ -112,7 +112,24 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-func server(r *gin.Engine, data []byte, serv string, pass string, file string, debug bool) {
+func server(r *gin.Engine, serv string, user string, pass string, file string, debug bool) {
+	// Add Asset
+	data, err := Asset("web/index.html")
+	if err != nil {
+		// asset was not found.
+		fmt.Println(err)
+	}
+
+	// Manage share auth
+	auth := r.Group("/", gin.BasicAuthForRealm(gin.Accounts{
+		user: pass,
+	}, "Utilisateur: "+user))
+
+	// Gin router
+	auth.GET("/share", func(c *gin.Context) {
+		c.Data(http.StatusOK, "text/html; charset=utf-8", data)
+	})
+
 	m := melody.New()
 	m.Config.MaxMessageSize = 65536 //2^16
 
@@ -189,24 +206,34 @@ func server(r *gin.Engine, data []byte, serv string, pass string, file string, d
 	})
 }
 
+func banner(p string, serv string, pass string, version string) {
+	fmt.Println("#--------------------------------------------#")
+	fmt.Println(" ")
+	fmt.Println("    Usage =>  http://localhost:" + p + "/  <=")
+	fmt.Println(" ")
+	fmt.Println("  Partage :")
+	fmt.Println("  =========")
+	fmt.Println("  Server: " + serv)
+	fmt.Println("    Pass: " + pass)
+	fmt.Println(" ")
+	fmt.Println("  version: " + version)
+	fmt.Println("#--------------------------------------------#")
+}
+
 func main() {
 	pass := RandStringBytes(8)
 	if os.Getenv("CRISIS_KEY") != "" {
 		pass = os.Getenv("CRISIS_KEY")
 	}
 
-	servPtr := flag.String("s", "", "Serveur")
-	usrPtr := flag.String("u", "crise", "Utilisateur")
-	filePtr := flag.String("f", "./chrono.log", "Fichier de log")
-	portPtr := flag.String("p", "5000", "Port")
-	debugPtr := flag.Bool("d", false, "Debug mode")
+	var serv, user, file, p string
+	var debug bool
+	flag.StringVar(&serv, "s", "", "Serveur")
+	flag.StringVar(&user, "u", "crise", "Utilisateur")
+	flag.StringVar(&file, "f", "./chrono.log", "Main courante")
+	flag.StringVar(&p, "p", "5000", "Port")
+	flag.BoolVar(&debug, "d", false, "Debug mode")
 	flag.Parse()
-
-	p := *portPtr
-	user := *usrPtr
-	file := *filePtr
-	serv := *servPtr
-	debug := *debugPtr
 
 	if debug == false {
 		gin.SetMode(gin.ReleaseMode)
@@ -234,36 +261,9 @@ func main() {
 		serv = "http://" + serv + ":" + p + "/share/"
 	}
 
-	fmt.Println("#--------------------------------------------#")
-	fmt.Println(" ")
-	fmt.Println("    Usage =>  http://localhost:" + p + "/  <=")
-	fmt.Println(" ")
-	fmt.Println("  Partage :")
-	fmt.Println("  =========")
-	fmt.Println("  Server: " + serv)
-	fmt.Println("    Pass: " + pass)
-	fmt.Println(" ")
-	fmt.Println("  version: " + version)
-	fmt.Println("#--------------------------------------------#")
+	banner(p, serv, pass, version)
 
-	// Add Asset
-	data, err := Asset("web/index.html")
-	if err != nil {
-		// asset was not found.
-		fmt.Println(err)
-	}
-
-	// Manage share auth
-	auth := r.Group("/", gin.BasicAuthForRealm(gin.Accounts{
-		user: pass,
-	}, "Utilisateur: "+user))
-
-	// Gin router
-	auth.GET("/share", func(c *gin.Context) {
-		c.Data(http.StatusOK, "text/html; charset=utf-8", data)
-	})
-
-	server(r, data, serv, pass, file, debug)
+	server(r, serv, user, pass, file, debug)
 
 	r.Run(":" + p)
 }

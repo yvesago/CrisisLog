@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/base64"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -67,6 +68,51 @@ func TestLog(t *testing.T) {
 
 }
 
+func contains(s []string, t string) bool {
+	for _, v := range s {
+		if v == t {
+			return true
+		}
+	}
+	return false
+}
+
+func TestAsset(t *testing.T) {
+	defer func() {
+		deleteFile("t/web/index.html")
+		deleteFile("t/web/")
+		deleteFile("t/")
+	}()
+	_, err := Asset("web/index.html")
+	if err != nil {
+		// asset was not found.
+		fmt.Println(err)
+	}
+	d, _ := AssetInfo("web/index.html")
+	assert.Equal(t, "web/index.html", d.Name(), "name of asset")
+	a := AssetNames()
+	liste := []string{
+		"web/index.html",
+	}
+	for _, la := range a {
+		assert.Equal(t, true, contains(liste, la), "asset in list")
+	}
+
+	a, _ = AssetDir("web/med")
+	liste = []string{"default.min.css", "medium-editor.min.css", "medium-editor.min.js"}
+	for _, la := range a {
+		assert.Equal(t, true, contains(liste, la), "asset in list")
+	}
+	RestoreAssets("t/", "web/index.html")
+	_, e := os.Stat("t/web/index.html")
+	assert.Equal(t, nil, e, "restored file exist")
+}
+
+func basicAuth(username, password string) string {
+	auth := username + ":" + password
+	return base64.StdEncoding.EncodeToString([]byte(auth))
+}
+
 func TestServer(t *testing.T) {
 	testFileName := "_test.log"
 	defer deleteFile(testFileName)
@@ -76,25 +122,9 @@ func TestServer(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
-	data, err := Asset("web/index.html")
-	if err != nil {
-		// asset was not found.
-		fmt.Println(err)
-	}
+	banner("[some-test-port]", "", "[random pass]", version)
 
-	/*
-		// Manage share auth
-		auth := r.Group("/", gin.BasicAuthForRealm(gin.Accounts{
-			user: pass,
-		}, "Utilisateur: "+user))
-
-		// Gin router
-		auth.GET("/share", func(c *gin.Context) {
-			c.Data(http.StatusOK, "text/html; charset=utf-8", data)
-		})
-	*/
-
-	server(r, data, "http://exemple.com", "qwerty", testFileName, true)
+	server(r, "http://exemple.com", "crise", "qwerty", testFileName, true)
 
 	/**
 	  test template
@@ -108,6 +138,20 @@ func TestServer(t *testing.T) {
 	r.ServeHTTP(resp1, req)
 	//fmt.Printf("%+v\n", resp1.Body)
 	assert.Equal(t, 200, resp1.Code, "template success")
+
+	/**
+	  test basic auth
+	  **/
+	req, err = http.NewRequest("GET", "/share", nil)
+	req.Header.Add("Authorization", "Basic "+basicAuth("crise", "qwerty"))
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	resp1 = httptest.NewRecorder()
+	r.ServeHTTP(resp1, req)
+	//fmt.Printf("%+v\n", resp1.Body)
+	assert.Equal(t, 200, resp1.Code, "basic auth success")
 
 	/**
 	  test websocket

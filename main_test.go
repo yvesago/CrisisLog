@@ -168,12 +168,25 @@ func TestServer(t *testing.T) {
 	s := httptest.NewServer(r)
 	defer s.Close()
 
+	h := http.Header{"Authorization": {"Basic " + basicAuth("crise", "qwerty")}}
 	d := websocket.Dialer{}
-	c, resp, err := d.Dial("ws://"+s.Listener.Addr().String()+"/log/ws", nil)
+	c, resp, err := d.Dial("ws://"+s.Listener.Addr().String()+"/share/log/ws", h)
 	if err != nil {
 		t.Fatal(err)
 	}
+	assert.Equal(t, http.StatusSwitchingProtocols, resp.StatusCode, "ok switching connect")
 
+	c, resp, err = d.Dial("ws://"+s.Listener.Addr().String()+"/log/ws", nil)
+	/*if err != nil {
+	    t.Fatal(err)
+	}*/
+	assert.Equal(t, 401, resp.StatusCode, "access denied whithout auth")
+
+	d = websocket.Dialer{}
+	c, resp, err = d.Dial("ws://"+s.Listener.Addr().String()+"/log/ws", h)
+	if err != nil {
+		t.Fatal(err)
+	}
 	assert.Equal(t, http.StatusSwitchingProtocols, resp.StatusCode, "ok switching connect")
 
 	/**

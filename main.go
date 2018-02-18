@@ -140,10 +140,26 @@ func server(r *gin.Engine, serv string, user string, pass string, file string, d
 	})
 
 	// Websocket router
-	r.GET("/log/ws", func(c *gin.Context) {
+	auth.GET("/share/log/ws", func(c *gin.Context) {
 		ml := make(map[string]interface{})
 		ml["cip"] = c.ClientIP()
 		m.HandleRequestWithKeys(c.Writer, c.Request, ml)
+	})
+
+	r.GET("/log/ws", func(c *gin.Context) {
+		if c.ClientIP() == "::1" {
+			ml := make(map[string]interface{})
+			ml["cip"] = c.ClientIP()
+			m.HandleRequestWithKeys(c.Writer, c.Request, ml)
+		} else {
+			// redirect via path rewrite
+			url := c.Request.URL
+			url.Host = c.Request.Host
+			url.Path = "/share/log/ws"
+			url.Scheme = "ws"
+			// fmt.Printf("=== %s === \n", url.String())
+			r.ServeHTTP(c.Writer, c.Request)
+		}
 	})
 
 	oldday := ""

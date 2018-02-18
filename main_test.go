@@ -117,12 +117,20 @@ func TestServer(t *testing.T) {
 	testFileName := "_test.log"
 	defer deleteFile(testFileName)
 
-	assert.Equal(t, "ynvpoqhs5g3x", RandStringBytes(12), "test 12 char rand string")
+	localPort := "5000"
+	randomPass := RandStringBytes(12)
+	assert.Equal(t, "ynvpoqhs5g3x", randomPass, "test 12 char rand string")
 
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
-	banner("[some-test-port]", "", "[random pass]", version)
+	assert.Equal(t, "http://exemple.com", localServer("http://exemple.com", localPort), "don't change fixed server url")
+	urlContains := regexp.MustCompile(`:5000/share/$`).MatchString
+
+	localServUrl := localServer("", localPort)
+	assert.Equal(t, true, urlContains(localServUrl), "create local server url")
+
+	banner(localPort, localServUrl, randomPass, version)
 
 	server(r, "http://exemple.com", "crise", "qwerty", testFileName, true)
 

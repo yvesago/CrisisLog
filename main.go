@@ -220,6 +220,24 @@ func banner(p string, serv string, pass string, version string) {
 	fmt.Println("#--------------------------------------------#")
 }
 
+func localServer(serv string, p string) string {
+	if serv != "" {
+		return serv
+	}
+
+	addrs, _ := net.InterfaceAddrs()
+	for _, a := range addrs {
+		if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			serv = ipnet.IP.String()
+			if ipnet.IP.To4() != nil { // prefer shorter IPv4 if available
+				break
+			}
+		}
+	}
+	serv = "http://" + serv + ":" + p + "/share/"
+	return serv
+}
+
 func main() {
 	pass := RandStringBytes(8)
 	if os.Getenv("CRISIS_KEY") != "" {
@@ -247,19 +265,7 @@ func main() {
 		r.Use(gin.Logger())
 	}
 
-	addrs, _ := net.InterfaceAddrs()
-
-	if serv == "" {
-		for _, a := range addrs {
-			if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-				serv = ipnet.IP.String()
-				if ipnet.IP.To4() != nil { // prefer shorter IPv4 if available
-					break
-				}
-			}
-		}
-		serv = "http://" + serv + ":" + p + "/share/"
-	}
+	serv = localServer(serv, p)
 
 	banner(p, serv, pass, version)
 
